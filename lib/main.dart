@@ -162,12 +162,44 @@ class QuickActionCard extends StatelessWidget {
   }
 }
 
-class ChatInput extends ConsumerWidget {
+class ChatInput extends ConsumerStatefulWidget {
   const ChatInput({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final inputText = ref.watch(chatInputProvider);
+  ConsumerState<ChatInput> createState() => _ChatInputState();
+}
+
+class _ChatInputState extends ConsumerState<ChatInput> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleSubmitted(String value) {
+    if (value.trim().isNotEmpty) {
+      ref.read(chatNotifierProvider.notifier).sendMessage(value);
+      _controller.clear();
+      ref.read(chatInputProvider.notifier).clear();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Listen to changes in the chat input provider
+    ref.listen(chatInputProvider, (previous, next) {
+      if (next.isEmpty && _controller.text.isNotEmpty) {
+        _controller.clear();
+      }
+    });
     
     return Container(
       padding: const EdgeInsets.all(8),
@@ -207,14 +239,12 @@ class ChatInput extends ConsumerWidget {
           ),
           Expanded(
             child: TextField(
-              controller: TextEditingController(text: inputText),
+              controller: _controller,
               onChanged: (value) => ref.read(chatInputProvider.notifier).updateInput(value),
-              onSubmitted: (value) {
-                if (value.trim().isNotEmpty) {
-                  ref.read(chatNotifierProvider.notifier).sendMessage(value);
-                  ref.read(chatInputProvider.notifier).clear();
-                }
-              },
+              onSubmitted: _handleSubmitted,
+              textInputAction: TextInputAction.send,
+              keyboardType: TextInputType.multiline,
+              maxLines: null,
               decoration: InputDecoration(
                 hintText: '有什么问题尽管问我',
                 border: OutlineInputBorder(
@@ -231,15 +261,13 @@ class ChatInput extends ConsumerWidget {
             ),
           ),
           IconButton(
+            icon: const Icon(Icons.send),
+            onPressed: () => _handleSubmitted(_controller.text),
+          ),
+          IconButton(
             icon: const Icon(Icons.mic),
             onPressed: () {
               // TODO: Implement voice input
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.add_circle_outline),
-            onPressed: () {
-              // TODO: Implement additional options
             },
           ),
         ],
