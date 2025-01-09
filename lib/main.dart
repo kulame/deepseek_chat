@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'features/chat/models/chat_message.dart';
+import 'features/chat/providers/chat_provider.dart';
 
 void main() {
   runApp(
@@ -70,20 +72,24 @@ class ChatScreen extends StatelessWidget {
       body: Column(
         children: [
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: const [
-                ChatBubble(
-                  isUser: false,
-                  message: '👋你好呀，我是 Kimi，很高兴认识你！有问题欢迎随时问我。',
-                ),
-                SizedBox(height: 16),
-                QuickActionCard(
-                  title: 'Kimi k1 视觉思考模型',
-                  subtitle: '抢先体验',
-                  icon: '🔥',
-                ),
-              ],
+            child: Consumer(
+              builder: (context, ref, _) {
+                final messages = ref.watch(chatNotifierProvider);
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) {
+                    final message = messages[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: ChatBubble(
+                        message: message.content,
+                        isUser: message.isUser,
+                      ),
+                    );
+                  },
+                );
+              },
             ),
           ),
           const ChatInput(),
@@ -156,11 +162,13 @@ class QuickActionCard extends StatelessWidget {
   }
 }
 
-class ChatInput extends StatelessWidget {
+class ChatInput extends ConsumerWidget {
   const ChatInput({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final inputText = ref.watch(chatInputProvider);
+    
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
@@ -199,6 +207,14 @@ class ChatInput extends StatelessWidget {
           ),
           Expanded(
             child: TextField(
+              controller: TextEditingController(text: inputText),
+              onChanged: (value) => ref.read(chatInputProvider.notifier).updateInput(value),
+              onSubmitted: (value) {
+                if (value.trim().isNotEmpty) {
+                  ref.read(chatNotifierProvider.notifier).sendMessage(value);
+                  ref.read(chatInputProvider.notifier).clear();
+                }
+              },
               decoration: InputDecoration(
                 hintText: '有什么问题尽管问我',
                 border: OutlineInputBorder(
