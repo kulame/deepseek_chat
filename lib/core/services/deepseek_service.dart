@@ -24,29 +24,44 @@ class DeepSeekService {
     };
     print("headers: $headers");
 
-    try {
-      final response = await _client.post(
-        url,
-        headers: headers,
-        body: jsonEncode({
-          'model': 'deepseek-chat',
-          'messages': [
-            {'role': 'user', 'content': message}
-          ],
-          'temperature': 0.7,
-        }),
-      );
-      print(response.body);
+    int maxAttempts = 3;
+    int attempt = 0;
+    Duration baseDelay = const Duration(seconds: 1);
 
-      if (response.statusCode == 200) {
-        //return jsonDecode(response.body);
-        return jsonDecode(utf8.decode(response.bodyBytes));
-      } else {
-        throw Exception('Failed to send message: ${response.statusCode}');
+    while (attempt < maxAttempts) {
+      try {
+        final response = await _client.post(
+          url,
+          headers: headers,
+          body: jsonEncode({
+            'model': 'deepseek-chat',
+            'messages': [
+              {'role': 'user', 'content': message}
+            ],
+            'temperature': 0.7,
+          }),
+        );
+
+        if (response.statusCode == 200) {
+          return jsonDecode(utf8.decode(response.bodyBytes));
+        } else {
+          throw Exception('Failed to send message: ${response.statusCode}');
+        }
+      } catch (e) {
+        attempt++;
+        if (attempt == maxAttempts) {
+          throw Exception('Network error after $maxAttempts attempts: $e');
+        }
+        
+        // Calculate delay with exponential backoff
+        var delay = baseDelay * (1 << (attempt - 1));
+        print('Attempt $attempt failed. Retrying in ${delay.inSeconds} seconds...');
+        await Future.delayed(delay);
       }
-    } catch (e) {
-      throw Exception('Network error: $e');
     }
+    
+    // This should never be reached due to the throw in the catch block
+    throw Exception('Unexpected error in retry logic');
   }
 
   void dispose() {
