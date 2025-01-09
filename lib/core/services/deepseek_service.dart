@@ -39,7 +39,8 @@ class DeepSeekService {
       print(response.body);
 
       if (response.statusCode == 200) {
-        return jsonDecode(response.body);
+        //return jsonDecode(response.body);
+        return jsonDecode(utf8.decode(response.bodyBytes));
       } else {
         throw Exception('Failed to send message: ${response.statusCode}');
       }
