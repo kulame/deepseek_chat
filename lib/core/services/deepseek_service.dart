@@ -10,18 +10,24 @@ class DeepSeekService {
   final http.Client _client;
 
   DeepSeekService({
-    this.baseUrl = 'https://api.deepseek.com/v1',  // Replace with actual API endpoint
+    this.baseUrl =
+        'https://api.deepseek.com', // Replace with actual API endpoint
     required this.apiKey,
   }) : _client = http.Client();
 
   Future<Map<String, dynamic>> sendMessage(String message) async {
+    var url = Uri.parse('$baseUrl/chat/completions');
+    print("url: $url");
+    var headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $apiKey',
+    };
+    print("headers: $headers");
+
     try {
       final response = await _client.post(
-        Uri.parse('$baseUrl/chat/completions'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $apiKey',
-        },
+        url,
+        headers: headers,
         body: jsonEncode({
           'model': 'deepseek-chat',
           'messages': [
@@ -30,6 +36,7 @@ class DeepSeekService {
           'temperature': 0.7,
         }),
       );
+      print(response.body);
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);

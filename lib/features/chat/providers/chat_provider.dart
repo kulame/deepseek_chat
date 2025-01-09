@@ -34,7 +34,7 @@ class ChatNotifier extends _$ChatNotifier {
     try {
       final deepSeekService = ref.read(deepSeekServiceProvider);
       final response = await deepSeekService.sendMessage(content);
-      
+      print(response.toString());
       final assistantMessage = ChatMessage(
         id: _uuid.v4(),
         content: response['choices'][0]['message']['content'],
@@ -43,6 +43,7 @@ class ChatNotifier extends _$ChatNotifier {
 
       state = [...state, assistantMessage];
     } catch (e) {
+      print(e);
       final errorMessage = ChatMessage(
         id: _uuid.v4(),
         content: '抱歉，发生了一些错误。请稍后再试。',
